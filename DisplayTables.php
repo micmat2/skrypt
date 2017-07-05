@@ -1,5 +1,12 @@
 <?php
-session_start();
+ session_start();
+ // edytowanie działa tylko w przypadku, jeżeli unikalny identyfikator ID jest w pierwszej kolumnie. Skrypt nie wykrywa automatycznie kolumny PRIMARY KEY. 
+ // W związu z tym skrypt nie bedzie działał w przypadku, gdy ktoś podał unikalny numer ID w innej niz pierwszej kolumnie (w najlepszym wypadku nie zedytuje pola, które chcemy, w najgorszym - zedytuje pole inne niż chcemy) oraz gdy relacja tabeli jest "wiele do wielu" - (phpMyAdmin blokuje możliwość edytowania - ten niestety nie)
+ 
+ // w następnej wersji problem zostanie rozwiązany. Mam nadzieje.
+ 
+
+
 function displayArray($array)
 {
     echo "<pre>";
@@ -33,7 +40,14 @@ function mainFunction($DBhost, $DBname, $DBpass, $DBuser)
             if ($type == "struct")
                 $mysqlConect->showRecordStructure($nameTable);
             if ($type == "value") {
-                $mysqlConect->showRecordValue($nameTable);
+                if(isset($_POST['Text']) && isset($_POST['Element']))
+                    {
+                        $mysqlConect->updateElement($nameTable, $_POST['Text'], $_POST['Element'], $_POST['IDElement'], $_POST['NazwaID']);
+                    }
+                    else{
+                        $mysqlConect->showRecordValue($nameTable);
+                    }
+                
             }
         } else {
             $mysqlConect->showTables();
@@ -88,14 +102,33 @@ class DisplayDatabaseStruct
                 echo "<th style=\"border: 1px solid black; background-color: white; color: black;\">$klucz</th>";
             echo "</tr>";
             echo "<tr>";
-            while (list($klucz, $wartosc) = each($row_temp))
-                echo "<td style=\"border: 1px solid black\">$wartosc</td>";
+            $id = 0;
+            $nazwa_id = "";
+            while (list($klucz, $wartosc) = each($row_temp)){
+
+                if($klucz == 0){
+                    $id = $wartosc;
+                    $nazwa_id = $klucz;
+                }
+                echo "<td identyfikator=\"$id\" nazwa_id=\"$nazwa_id\" id=\"$klucz\" class=\"pole\" style=\"border: 1px solid black\">$wartosc</td>";
+               }
             echo "";
             echo "</tr>";
             echo "</table>";
             echo "<br>";
             //displayArray($row);
         }
+    }
+    public function updateElement($nameTable, $text, $element, $id, $nazwa_id)
+    {
+        $query = "UPDATE $nameTable SET $element='$text' WHERE $nazwa_id='$id'";
+        if($this->mysql_connector->query($query)){
+            echo "ok";
+        }
+        else{
+            echo "nieok";
+        }
+        echo $query;
     }
 }
 $DBhost = "";
@@ -128,3 +161,82 @@ if (isset($_POST['dbhost']) && isset($_POST['dbname']) && isset($_POST['dbpass']
 ENDOFFILE;
 }
 ?>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+ <script type="text/javascript">
+    window.onload = function() {
+        var elements = getElementsByClassName('pole');
+        for(var i = 0; i < elements.length; i++) {
+            elements[i].ondblclick = function() {
+                
+
+                var old = this;
+
+                var input = document.createElement("textarea");
+                input.type = "text";
+                input.value = this.textContent;
+                this.parentNode.replaceChild(input, this);
+                var save = document.createElement("INPUT");
+                save.type = "button";
+                save.value = "Save";
+                (function(old, input){
+                  save.onclick = function(){
+                    old.value = input.value;
+                    old.textContent = input.value;
+                    input.parentNode.replaceChild(old, input);
+                    this.parentNode.removeChild(this);
+                    cancel.parentNode.removeChild(cancel);
+                    var url = window.location.href;
+                    var sendData = {
+                        Text: input.value,
+                        IDElement: old.attributes[0].value,
+                        Element: old.id,
+                        NazwaID: old.attributes[1].value
+                    }
+
+                    $.ajax({
+                        url: url,
+                        dataType: "json",
+                        data: sendData,
+                        type: 'post',
+
+                
+                    });
+
+
+                };
+            })(old, input);
+            input.parentNode.insertBefore(save, input.nextSibling);
+            var cancel = document.createElement("INPUT");
+            cancel.type = "button";
+            cancel.value = "Cancel";
+            (function(old, input){
+              cancel.onclick = function(){
+                input.parentNode.replaceChild(old, input);
+                this.parentNode.removeChild(this);
+                save.parentNode.removeChild(save);
+            };
+        })(old, input);
+        input.parentNode.insertBefore(cancel, input.nextSibling);
+
+    }
+}(i);
+}
+
+function getElementsByClassName(className, tag, elm) {
+    var testClass = new RegExp("(^|\\s)" + className + "(\\s|$)");
+    var tag = tag || "*";
+    var elm = elm || document;
+    var elements = (tag == "*" && elm.all) ? elm.all : elm.getElementsByTagName(tag);
+    var returnElements = [];
+    var current;
+    var length = elements.length;
+    for(var i = 0; i < length; i++) {
+        current = elements[i];
+        if(testClass.test(current.className)) {
+            returnElements.push(current);
+        }
+    }
+    return returnElements;
+}
+</script>
