@@ -3,7 +3,7 @@
 echo "Adding new vhost";
 echo "Write name site:"
 read namePage;
-echo "DocumentRoot [default '/']:"
+echo "DocumentRoot [default '/'][example '/test:]"
 read DocumentRoot
 cd /etc/apache2/sites-available/
 touch $namePage.conf
@@ -13,11 +13,8 @@ echo "<VirtualHost *:80>
 	DocumentRoot /var/www/html/$namePage$DocumentRoot
 	ServerName www.$namePage.loc
 	ServerAlias $namePage.loc
-
 	ErrorLog ${APACHE_LOG_DIR}/error.log
 	CustomLog ${APACHE_LOG_DIR}/access.log combined
-
-
 	</VirtualHost>" > $namePage.conf
 
 ln -s -r $namePage.conf ../sites-enabled/$namePage.conf
