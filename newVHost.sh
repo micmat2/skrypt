@@ -1,4 +1,3 @@
-#!/bin/bash
 #Script bas adds new VHost to local server apache2. Ubuntu 16.04
 echo "Adding new vhost";
 echo "Write name site:"
@@ -10,7 +9,7 @@ touch $namePage.conf
 
 echo "<VirtualHost *:80>
 	ServerAdmin micmat@localhost
-	DocumentRoot /var/www/html/$namePage$DocumentRoot
+	DocumentRoot /var/www/html$DocumentRoot
 	ServerName www.$namePage.loc
 	ServerAlias $namePage.loc
 	ErrorLog ${APACHE_LOG_DIR}/error.log
